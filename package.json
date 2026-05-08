@@ -1,0 +1,26 @@
+{
+  "name": "tokopedia-auto-system",
+  "version": "1.0.0",
+  "description": "Tokopedia Auto Register & Login System",
+  "main": "tokped.js",
+  "scripts": {
+    "start": "node tokped.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paizutempest x Yaelanit",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chalk": "^4.1.2",
+    "crypto": "^1.0.1",
+    "fs": "0.0.1-security",
+    "gradient-string": "^2.0.2",
+    "playwright": "^1.43.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "readline-sync": "^1.4.10",
+    "uuid": "^9.0.1"
+
+  
+  }
+}
