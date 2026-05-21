@@ -5,11 +5,10 @@ const gradient = require('gradient-string');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const crypto = require('crypto');
+const forge = require('node-forge');
 const { chromium } = require('playwright-extra');
 const stealth = require('puppeteer-extra-plugin-stealth')();
 chromium.use(stealth);
-
-
 
 const TOKO_HEADERS = {
     'Content-Type': 'application/json',
@@ -85,7 +84,6 @@ function generateDynamicDevice() {
         bdDeviceId: "763170" + Math.floor(Math.random() * 1000000000000) 
     };
 }
-
 /**
  * HELPER: GQL REQUEST SENDER
  */
@@ -130,11 +128,98 @@ async function sendGql(query, variables, session, device, path, stolenCookie, au
     }
 }
 /**
+ * HELPER: GQL REQUEST SENDER
+ */
+async function sendGqlLogin(query, variables, session, device, path, stolenCookie, auth = null) {
+    const bodyPayload = JSON.stringify({ query, variables });
+    const STUB_FRESH = crypto.createHash('md5').update(bodyPayload).digest('hex').toUpperCase();
+    const KHRONOS_AUTO = Math.floor(Date.now() / 1000).toString();
+
+    // SUNTIKAN NATIVE TLS AGENT - ini yang ditambah!
+    const nativeMobileAgent = new (require('https').Agent)({
+        ciphers: 'DEFAULT:!aNULL:!eNULL:!LOW:!EXPR:!RC4:!MD5:!SPEC',
+        honorCipherOrder: true,
+        minVersion: 'TLSv1.2'
+    });
+
+    const headers = {
+        'Host': 'gql.tokopedia.com',
+        'Content-Type': 'application/json; encoding=utf-8',
+        // Update Versi Aplikasi Mengikuti Sniff Baru (2.372.0) - ini yang ditambah!
+        'User-Agent': 'Tokopedia/2.372.0 (com.tokopedia.Tokopedia; build:202605181428; iOS 26.2.1) Alamofire/1.0.0',
+        'Accept': 'application/json',
+        'Tkpd-SessionId': session,
+        'X-Tkpd-Path': path,
+        'Fingerprint-Data': device.fpData,
+        'Fingerprint-Hash': device.fpHash,
+        'X-SS-STUB': STUB_FRESH,
+        'Cookie': stolenCookie || "",
+        'X-Tkpd-Authorization': auth || 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q=',
+        'Authorization': auth || 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q=',
+        'X-Khronos': KHRONOS_AUTO,
+        'bd-device-id': device.bdDeviceId,
+        'Connection': 'keep-alive',
+        // Sinkronisasi Accept-Encoding & Language dari Sniff - ini yang ditambah!
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'id-ID;q=1.0, en-ID;q=0.9, tr-ID;q=0.8',
+        
+        // KELOMPOK HEADER BARU HASIL DUMP TERBARU LO:
+        'X-Device': 'ios-2.372.0', // ini yang ditambah!
+        'X-Method': 'POST', // ini yang ditambah!
+        'Request-Method': 'POST', // ini yang ditambah!
+        'X-Appsflyer-UID': '1779382828839-6600229', // ini yang ditambah!
+        'X-APP-VERSION': '2.372.0', // ini yang ditambah!
+        'x-dark-mode': 'false', // ini yang ditambah!
+        'x-theme': 'default', // ini yang ditambah!
+        'os_version': '26.2.1', // ini yang ditambah!
+        'x-price-center': 'true' // ini yang ditambah!
+    };
+
+    // --- AUTOMATED SIGNATURE ROUTING MATRIX ---
+    // Logika pengisian token accounts otomatis agar pendaftaran & klaim gak terpental
+    if (path.includes('registerCheck')) {
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=D90F'; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY='; // ini yang ditambah!
+    } else if (path.includes('getEncryptionKey')) {
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=C631'; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM='; // ini yang ditambah!
+    } else if (path.includes('secureLoginToken')) {
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=4288'; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q='; // ini yang ditambah!
+    } else if (path.includes('getVoucherListWidget') || path.includes('DynamicHomeChannelQuery')) {
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc='; // ini yang ditambah!
+    } else if (path.includes('getCatalogDetail')) {
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8='; // ini yang ditambah!
+    } else if (path.includes('redeem')) {
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg='; // ini yang ditambah!
+        headers['Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg='; // ini yang ditambah!
+        headers['X-TKPD-AKAMAI'] = 'claimcoupon'; // ini yang ditambah!
+    }
+
+    try {
+        return await axios.post('https://gql.tokopedia.com/graphql', 
+            { query, variables }, 
+            { 
+                headers, 
+                httpsAgent: nativeMobileAgent, // Suntik agen TLS Mobile - ini yang ditambah!
+                timeout: 30000 // Longgarin batas timeout - ini yang ditambah!
+            }
+        );
+    } catch (err) {
+        return { data: { errors: [{ message: err.message }] } };
+    }
+}
+/**
  * 👤 FUNGSI GET RANDOM NAME (INDONESIA)
  * URL diacak biar namanya nggak Unggul Nashiruddin terus
  */
 async function getRandomName() {
-    console.log(chalk.cyan(` [i] Mengambil Nama Random dari Web...`));
+    //console.log(chalk.cyan(` [i] Mengambil Nama Random dari Web...`));
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -166,7 +251,7 @@ async function getRandomName() {
 
         if (nameRaw) {
             const cleanName = nameRaw.split('\n')[0].trim();
-            console.log(chalk.green(` [✓] Nama Didapatkan: ${cleanName}`));
+            //console.log(chalk.green(` [✓] Nama Didapatkan: ${cleanName}`));
             return cleanName;
         } else {
             throw new Error("Selector Nama Tidak Ditemukan");
@@ -174,7 +259,7 @@ async function getRandomName() {
 
     } catch (e) {
         if (browser) await browser.close();
-        console.log(chalk.red(` [!] Gagal nangkep nama: ${e.message}. Pakai Fallback.`));
+        //console.log(chalk.red(` [!] Gagal nangkep nama: ${e.message}. Pakai Fallback.`));
         const fallbacks = ["Budi Santoso", "Siti Aminah", "Andi Wijaya", "Rian Hidayat"];
         return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
@@ -240,15 +325,15 @@ async function waitEmailOtp(email) {
 }
 
 /**
- * CORE LOGIC: REGISTER (SINKRON SNIFF EMAIL)
+ * MODE 1: AUTOMATIC REGISTER
  */
 async function startAutoRegister(index) {
     const namaAkun = await getRandomName();
     
     const device = generateDynamicDevice();
     const sessionId = uuidv4().replace(/-/g, '');
-    const passWeb = "Paizuu89101!!!";
-    const passEnc = "jNfSPdvROAk6Wv9OJBQAU+aegTwwHfT93RBjsf4w59/hPWVX6ZvYIa8oJnh1uNwncKVQgtuM9LgZdcrQPobudnKiC5l9SEP2gU0X8Fd0qVXB4XmhyUwm6iwRsaLhH8uayQqwgSZ8Q/0X+0hLvATJxOcOdSRJzbN5LGzWBkvYQJwP92clgVmQLR7kLLcIrCTQ7YczjJP4wbgxcv8iHAhtGTuZrAAMzzg/H9adZssx+Sso26cQ+oF+AKsfO+v+IPqKsKlMV4sxKTNcd9TAZYQ+qXdamV/KN4gW2IgmI6vPeFEnSBq1F9Ek+Bq0K24JqVINW2Lt7Xaz67FrdbCJcG4uPA==";
+    const passWeb = "Paizuu12345!!!";
+    const passEnc = "G3miWidWAfQ/jf1P0Wjf2Prk6HMK97t3IKOk7ZJlLMeHm3PSW4yFJONOiAqww10UqF12+gOrwrGbH4l97xT3Xx8aTLmOaKCAuDooB9T6FHq/B7fp3BkKnNwwX09deBebvsa0Cgg1vbR1vdSkas2/BQ7dxM1EyK3Iw5FY7oeIku45XvLP/ed4ZaeiItzdsdQsmANw48A5IoFN/acGZgGen25zlfhqWs0abKd7r7Jt8ykvd8tZSCNmDJaLJ0aQwSL5mzLmX7kmN4VLQBkF9ZEv4m0A3G7wdDKe3ivtI+KNbo4ofaaM0v+IUh79Ms0fVe5+By6RPKeo9XfMaQm90xkUaA==";
 
     console.log(chalk.yellow(`\n [ AKUN #${index} ] IDENTITAS BARU DIAKTIFKAN...`));
 
@@ -302,6 +387,192 @@ async function startAutoRegister(index) {
     } catch (e) { return await startAutoRegister(index); }
 }
 
+
+/**
+ * 🛠️ MODE 2: LOGIN ENGINE & NEW VOUCHER CLAIMER
+ */
+async function startLoginCheckVoucher(lineCombo, index) {
+    const [email, password] = lineCombo.trim().split('|');
+    if (!email || !password) return;
+
+    const device = generateDynamicDevice();
+    const sessionId = uuidv4().replace(/-/g, '');
+    
+    // Encrypted Password
+    const passEnc = "G3miWidWAfQ/jf1P0Wjf2Prk6HMK97t3IKOk7ZJlLMeHm3PSW4yFJONOiAqww10UqF12+gOrwrGbH4l97xT3Xx8aTLmOaKCAuDooB9T6FHq/B7fp3BkKnNwwX09deBebvsa0Cgg1vbR1vdSkas2/BQ7dxM1EyK3Iw5FY7oeIku45XvLP/ed4ZaeiItzdsdQsmANw48A5IoFN/acGZgGen25zlfhqWs0abKd7r7Jt8ykvd8tZSCNmDJaLJ0aQwSL5mzLmX7kmN4VLQBkF9ZEv4m0A3G7wdDKe3ivtI+KNbo4ofaaM0v+IUh79Ms0fVe5+By6RPKeo9XfMaQm90xkUaA==";
+
+    console.log(chalk.yellow(`\n [ CHECKER #${index} ] MENGINFILTRASI PORTAL AKUN: ${email}`));
+
+    try {
+        // --- TAHAP 1: MUTATION USER_LOGINTOKEN  ---
+        const loginQuery = `mutation User_LoginToken($input: TokenRequestV2!) {
+            login_token_v2(input: $input) {
+                access_token
+                expires_in
+                refresh_token
+                token_type
+                sid
+                errors { name message }
+                event_code
+                user_id_str
+            }
+        }`;
+
+        const loginVars = {
+            input: {
+                username: email,
+                password: passEnc,
+                h: "3fec",
+                grant_type: "password",
+                refresh_token: "", access_token: "", validate_token: "", code_verifier: "", fullname: "", code: "", ver: "", device_biometrics: "", redirect_uri: "", supported: "", password_type: "", social_type: "", cotp_ld: ""
+            }
+        };
+
+        const resLogin = await sendGqlLogin(loginQuery, loginVars, sessionId, device, "/graphql/UserAccount/secureLoginToken", "");
+        const loginTokenData = resLogin.data?.data?.login_token_v2;
+
+        if (loginTokenData?.errors && loginTokenData.errors.length > 0) {
+            console.log(chalk.red(` [✖] Gagal Tembus Login: ${loginTokenData.errors[0].message}`));
+            return;
+        }
+
+        const accessToken = loginTokenData?.access_token;
+        const finalCookie = `_SID_Tokopedia_=${loginTokenData?.sid || ""};`;
+
+        if (!accessToken) {
+            console.log(chalk.red(` [✖] Gagal Mendapatkan Access Token (Zonk/Blokir)`));
+            return;
+        }
+
+        console.log(chalk.green(` [✓] Login Sukses! Mengendus Katalog Voucher Pengguna Baru...`));
+        const authHeader = `Bearer ${accessToken}`;
+
+        // --- 4. SINKRONISASI QUERY LYNX BERANDA ---
+        const homeLynxQuery = `query DynamicHomeChannelQuery($channelIDs: String, $groupIDs: String, $location: String, $numOfChannel: Int, $page: String, $param: String, $token: String, $productCardVersion: String, $refreshType: Int, $bytedanceSessionID: String) {
+          getHomeChannelV2(
+            channelIDs: $channelIDs
+            groupIDs: $groupIDs
+            location: $location
+            numOfChannel: $numOfChannel
+            page: $page
+            param: $param
+            token: $token
+            productCardVersion: $productCardVersion
+            refreshType: $refreshType
+            bytedanceSessionID: $bytedanceSessionID
+          ) {
+            channels {
+              oldId: id
+              id: id_str_auto_
+              name
+              layout
+              dynamicContent
+            }
+          }
+        }`;
+
+        const homeLynxVars = {
+            location: "user_addressId=0&user_cityId=176&user_districtId=2274&user_lat=0.0&user_long=0.0&user_postCode=",
+            productCardVersion: "v5",
+            param: "page=home_v2&group_ids=531&isHybrid=true",
+            groupIDs: "",
+            channelIDs: "",
+            bytedanceSessionID: "",
+            page: "",
+            refreshType: 0
+        };
+
+        const resHome = await sendGqlLogin(homeLynxQuery, homeLynxVars, sessionId, device, "/graphql/Lynx/DynamicHomeChannelQuery", finalCookie, authHeader);
+        const channels = resHome.data?.data?.getHomeChannelV2?.channels || [];
+        
+        let found = false;
+        let foundVoucherWidget = null;
+
+        // --- TAHAP 5: LOOPING STRUKTUR ASLI IKUTIN TEST_HOME LO ---
+        for (const ch of channels) {
+            if (ch.name && ch.name.includes("New User Lifecycle Widget")) {
+                found = true;
+                
+                if (ch.dynamicContent && ch.dynamicContent.voucherWidget) {
+                    foundVoucherWidget = ch.dynamicContent.voucherWidget;
+                    break; // Langsung kunci target dan keluar loop
+                }
+            }
+        }
+
+        if (!found || !foundVoucherWidget) {
+            console.log(chalk.red(` [✖] Request Lolos tapi Voucher Tidak Nempel (Akun Zonk).`));
+            fs.appendFileSync('tokped_zonk.txt', `${email}|${password}\n`);
+            return;
+        }
+
+        // Ambil data value yang sudah dikunci dari saringan test_home lo
+        const vTitle = foundVoucherWidget.voucherDisplay?.benefitFullText || "Diskon Pengguna Baru 99%";
+        const btnText = foundVoucherWidget.voucherDisplay?.ctaButton?.text || "Klaim";
+        const vIdStr = foundVoucherWidget.voucherTypeID || "7639349865914779400";
+        const vId = parseInt(vIdStr);
+
+        console.log(chalk.cyan(`\n==================================================`));
+        console.log(chalk.green.bold(` [★] TARGET MENGUNCI SEMPURNA PADA AKAR BERANDA:`));
+        console.log(chalk.white(`     Benefit       : `) + chalk.green(vTitle));
+        console.log(chalk.white(`     ID Katalog    : `) + chalk.yellow(vId));
+        console.log(chalk.white(`     Status Tombol : `) + chalk.red.bold(btnText));
+        console.log(chalk.cyan(`==================================================\n`));
+
+        // JALUR BYPASS CEPAT JIKA SUDAH PERNAH DIKLAIM
+        if (btnText === "Pakai" || btnText === "Gunakan") {
+            console.log(chalk.green(`     > Voucher Sudah Terklaim Sebelumnya di Akun Ini!`));
+            fs.appendFileSync('tokped_ada_voucher.txt', `${email}|${password} ┃ Ready: ${vTitle} (Already Claimed)\n`);
+            return;
+        }
+
+        // --- 6. EXECUTE SPAM REDEEM ENGINE DARI BERANDA ---
+        const redeemMutation = `mutation Redeem($catalogId: Int, $isGift: Int, $giftUserId: Int, $giftEmail: String, $notes: String) {
+            hachikoRedeem(catalog_id: $catalogId, is_gift: $isGift, gift_user_id: $giftUserId, gift_email: $giftEmail, notes: $notes, apiVersion: "2.0.0") {
+                redeemMessage
+            }
+        }`;
+
+        const detailQuery = `query Tokopoints_hachikoCatalogDetail($slug: String, $catalogId: Int) {
+          hachikoCatalogDetail(slug: $slug, catalog_id: $catalogId, apiVersion: "3.0.0") {
+            button_str disable_error_message
+          }
+        }`;
+
+        let isClaimed = false;
+        let attempt = 0;
+
+        while (!isClaimed && attempt < 10) {
+            attempt++;
+            
+            const resRedeem = await sendGqlLogin(redeemMutation, { catalogId: vId }, sessionId, device, "/graphql/TokopointVoucher/redeem", finalCookie, authHeader);
+            const msg = resRedeem.data?.data?.hachikoRedeem?.redeemMessage || "";
+
+            const resDetail = await sendGqlLogin(detailQuery, { slug: vId.toString() }, sessionId, device, "/graphql/TokopointVoucher/getCatalogDetail", finalCookie, authHeader);
+            const currentButton = resDetail.data?.data?.hachikoCatalogDetail?.button_str || "";
+
+            if (msg.includes("berhasil kamu klaim") || currentButton === "Gunakan" || currentButton === "Pakai") {
+                console.log(chalk.green(`     > [Attempt #${attempt}] BOOM!! KLAIM BERANDA BERHASIL ⮕ Status Tombol: 'Pakai/Gunakan'`));
+                isClaimed = true;
+            } else {
+                const errReason = resDetail.data?.data?.hachikoCatalogDetail?.disable_error_message || "Gagal Syarat";
+                process.stdout.write(chalk.red(`     > [Attempt #${attempt}] Gagal: '${errReason}' ⮕ Spamming API Redeem...\r`));
+                await delay(1500);
+            }
+        }
+
+        if (isClaimed) {
+            fs.appendFileSync('tokped_ada_voucher.txt', `${email}|${password} ┃ Sukses Klaim Beranda: ${vTitle}\n`);
+        } else {
+            console.log(chalk.red(` [✖] Akun Mentok Gagal Klaim Beranda.`));
+            fs.appendFileSync('tokped_gagal_claim.txt', `${email}|${password}\n`);
+        }
+
+    } catch (e) {
+        console.log(chalk.red(` [✖] Fatal System Error: ${e.message}`));
+    }
+}
+
 /**
  * 🚀 MAIN CONTROLLER (MENU SYSTEM)
  */
@@ -310,7 +581,7 @@ async function main() {
     
     console.log(chalk.white(` Pilih Mode Operasi:`));
     console.log(chalk.green(` 1. Register Auto (Email + Set Password + Add OTP + Add PIN)`));
-    console.log(chalk.yellow(` 2. Login with Email + Check Voucher `) + chalk.red(`(Coming Soon)`));
+    console.log(chalk.yellow(` 2. Login with Email + Check Voucher `));
     console.log(chalk.gray(` ─────────────────────────────────────────────────────────`));
 
     const menuChoice = readline.question(chalk.yellow(' > Pilih Menu (1/2): '));
@@ -333,12 +604,28 @@ async function main() {
         console.log(chalk.white(` [i] Cek hasil di: akuntokped.txt`));
 
     } else if (menuChoice === '2') {
-        console.log(chalk.red('\n [!] Fitur Login & Check Voucher masih dalam tahap pengembangan (Coming Soon).'));
-        console.log(chalk.yellow(' [i] Balik lagi nanti ya Bang!'));
-        
-        // Kasih pilihan balik ke menu awal atau exit
-        const back = readline.keyInYN(chalk.white(' > Balik ke menu utama?'));
-        if (back) return main();
+        if (!fs.existsSync('akuntokped.txt')) {
+            console.log(chalk.red('\n [!] File akuntokped.txt tidak ditemukan!'));
+            console.log(chalk.yellow(' [i] Silakan jalankan Menu 1 dulu untuk bikin list akun.'));
+            await delay(3000);
+            return main();
+        }
+
+        const listAkun = fs.readFileSync('akuntokped.txt', 'utf-8').split('\n').filter(l => l.includes('|'));
+        console.log(chalk.white(`\n [i] Menemukan ${listAkun.length} akun siap di-check & klaim.`));
+        console.log(chalk.gray(` ─────────────────────────────────────────────────────────`));
+
+        for (let i = 0; i < listAkun.length; i++) {
+            await startLoginCheckVoucher(listAkun[i], i + 1);
+            if (i < listAkun.length - 1) {
+                console.log(chalk.magenta(`\n [i] Cooling down... Tunggu 5 detik antar akun.`));
+                await delay(5000);
+            }
+        }
+
+        console.log(chalk.green.bold('\n [✓] SEMUA PROSES CHECK & CLAIM VOUCHER SELESAI!'));
+        console.log(chalk.white(` [i] Voucher valid tersimpan di : tokped_ada_voucher.txt`));
+        console.log(chalk.white(` [i] Akun kosong tersimpan di   : tokped_zonk.txt`));
     } else {
         console.log(chalk.red('\n [!] Pilihan tidak valid!'));
         await delay(2000);
