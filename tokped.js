@@ -40,7 +40,7 @@ function displayBanner() {
 }
 
 /**
- * GENERATOR DEVICE FINGERPRINT (ANTI-DETECTION)
+ * GENERATOR DEVICE FINGERPRINT
  */
 function generateDynamicDevice() {
     const idfa = uuidv4().toUpperCase();
