@@ -580,7 +580,7 @@ async function main() {
     displayBanner();
     
     console.log(chalk.white(` Pilih Mode Operasi:`));
-    console.log(chalk.green(` 1. Register Auto (Email + Set Password + Add OTP + Add PIN)`));
+    console.log(chalk.green(` 1. Register Auto (Email + Set Password)`));
     console.log(chalk.yellow(` 2. Login with Email + Check Voucher `));
     console.log(chalk.gray(` ─────────────────────────────────────────────────────────`));
 
