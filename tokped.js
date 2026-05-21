@@ -91,7 +91,7 @@ async function sendGql(query, variables, session, device, path, stolenCookie, au
     const bodyPayload = JSON.stringify({ query, variables });
     const STUB_FRESH = crypto.createHash('md5').update(bodyPayload).digest('hex').toUpperCase();
     const KHRONOS_AUTO = Math.floor(Date.now() / 1000).toString();
-    //const GORGON_FRESH = '8404c0ee000020e699b636ec81583067ee8a30c38061fc043167'; 
+    
 
     const headers = {
         'Host': 'gql.tokopedia.com',
@@ -135,7 +135,7 @@ async function sendGqlLogin(query, variables, session, device, path, stolenCooki
     const STUB_FRESH = crypto.createHash('md5').update(bodyPayload).digest('hex').toUpperCase();
     const KHRONOS_AUTO = Math.floor(Date.now() / 1000).toString();
 
-    // SUNTIKAN NATIVE TLS AGENT - ini yang ditambah!
+    // SUNTIKAN NATIVE TLS AGENT
     const nativeMobileAgent = new (require('https').Agent)({
         ciphers: 'DEFAULT:!aNULL:!eNULL:!LOW:!EXPR:!RC4:!MD5:!SPEC',
         honorCipherOrder: true,
@@ -145,7 +145,7 @@ async function sendGqlLogin(query, variables, session, device, path, stolenCooki
     const headers = {
         'Host': 'gql.tokopedia.com',
         'Content-Type': 'application/json; encoding=utf-8',
-        // Update Versi Aplikasi Mengikuti Sniff Baru (2.372.0) - ini yang ditambah!
+        // Update Versi Aplikasi Mengikuti Sniff Baru (2.372.0)
         'User-Agent': 'Tokopedia/2.372.0 (com.tokopedia.Tokopedia; build:202605181428; iOS 26.2.1) Alamofire/1.0.0',
         'Accept': 'application/json',
         'Tkpd-SessionId': session,
@@ -159,46 +159,46 @@ async function sendGqlLogin(query, variables, session, device, path, stolenCooki
         'X-Khronos': KHRONOS_AUTO,
         'bd-device-id': device.bdDeviceId,
         'Connection': 'keep-alive',
-        // Sinkronisasi Accept-Encoding & Language dari Sniff - ini yang ditambah!
+
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'id-ID;q=1.0, en-ID;q=0.9, tr-ID;q=0.8',
         
-        // KELOMPOK HEADER BARU HASIL DUMP TERBARU LO:
-        'X-Device': 'ios-2.372.0', // ini yang ditambah!
-        'X-Method': 'POST', // ini yang ditambah!
-        'Request-Method': 'POST', // ini yang ditambah!
-        'X-Appsflyer-UID': '1779382828839-6600229', // ini yang ditambah!
-        'X-APP-VERSION': '2.372.0', // ini yang ditambah!
-        'x-dark-mode': 'false', // ini yang ditambah!
-        'x-theme': 'default', // ini yang ditambah!
-        'os_version': '26.2.1', // ini yang ditambah!
-        'x-price-center': 'true' // ini yang ditambah!
+
+        'X-Device': 'ios-2.372.0',
+        'X-Method': 'POST',
+        'Request-Method': 'POST',
+        'X-Appsflyer-UID': '1779382828839-6600229', 
+        'X-APP-VERSION': '2.372.0', 
+        'x-dark-mode': 'false', 
+        'x-theme': 'default',
+        'os_version': '26.2.1',
+        'x-price-center': 'true'
     };
 
     // --- AUTOMATED SIGNATURE ROUTING MATRIX ---
     // Logika pengisian token accounts otomatis agar pendaftaran & klaim gak terpental
     if (path.includes('registerCheck')) {
-        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=D90F'; // ini yang ditambah!
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY='; // ini yang ditambah!
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=D90F'; 
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY=';
+        headers['Authorization'] = 'TKPD Tokopedia:/C/jiL4y4Ut5fOcUOb8o+qClWEY='; 
     } else if (path.includes('getEncryptionKey')) {
-        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=C631'; // ini yang ditambah!
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM='; // ini yang ditambah!
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=C631'; 
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM=';
+        headers['Authorization'] = 'TKPD Tokopedia:ju4BlIb7VCQc4UYhUziYTGuaboM='; 
     } else if (path.includes('secureLoginToken')) {
-        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=4288'; // ini yang ditambah!
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q='; // ini yang ditambah!
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=4288'; 
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q=';
+        headers['Authorization'] = 'TKPD Tokopedia:Bs08PXGGXAsCmjsWP6YrR1rK67Q=';
     } else if (path.includes('getVoucherListWidget') || path.includes('DynamicHomeChannelQuery')) {
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc='; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc=';
+        headers['Authorization'] = 'TKPD Tokopedia:6nXv84t8zTR8iGsAHirVai44nAc='; 
     } else if (path.includes('getCatalogDetail')) {
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8='; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8=';
+        headers['Authorization'] = 'TKPD Tokopedia:7qJpZ86JvkzxRvwab8Wr9eOeyP8='; 
     } else if (path.includes('redeem')) {
-        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg='; // ini yang ditambah!
-        headers['Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg='; // ini yang ditambah!
-        headers['X-TKPD-AKAMAI'] = 'claimcoupon'; // ini yang ditambah!
+        headers['X-Tkpd-Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg='; 
+        headers['Authorization'] = 'TKPD Tokopedia:XRo+hjh0nNSWlZNoISAO7uTuRbg=';
+        headers['X-TKPD-AKAMAI'] = 'claimcoupon'; 
     }
 
     try {
@@ -206,8 +206,8 @@ async function sendGqlLogin(query, variables, session, device, path, stolenCooki
             { query, variables }, 
             { 
                 headers, 
-                httpsAgent: nativeMobileAgent, // Suntik agen TLS Mobile - ini yang ditambah!
-                timeout: 30000 // Longgarin batas timeout - ini yang ditambah!
+                httpsAgent: nativeMobileAgent,
+                timeout: 30000
             }
         );
     } catch (err) {
@@ -216,7 +216,7 @@ async function sendGqlLogin(query, variables, session, device, path, stolenCooki
 }
 /**
  * 👤 FUNGSI GET RANDOM NAME (INDONESIA)
- * URL diacak biar namanya nggak Unggul Nashiruddin terus
+ * URL diacak
  */
 async function getRandomName() {
     //console.log(chalk.cyan(` [i] Mengambil Nama Random dari Web...`));
@@ -225,7 +225,7 @@ async function getRandomName() {
     const page = await context.newPage();
     
     try {
-        // Trik: Kita bikin angka random buat parameter 's' (seed) 
+        
         // atau pake URL tanpa seed biar dapet yang fresh
         const randomSeed = Math.floor(Math.random() * 10000);
         const targetUrl = `https://www.random-name-generator.com/indonesia?s=${randomSeed}&n=1`;
@@ -259,7 +259,7 @@ async function getRandomName() {
 
     } catch (e) {
         if (browser) await browser.close();
-        //console.log(chalk.red(` [!] Gagal nangkep nama: ${e.message}. Pakai Fallback.`));
+       
         const fallbacks = ["Budi Santoso", "Siti Aminah", "Andi Wijaya", "Rian Hidayat"];
         return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
