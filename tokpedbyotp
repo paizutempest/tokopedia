@@ -1,0 +1,467 @@
+const axios = require('axios');
+const readline = require('readline-sync');
+const chalk = require('chalk');
+const gradient = require('gradient-string');
+const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const crypto = require('crypto');
+
+/**
+ * CONFIGURATION & API KEYS
+ */
+const HEROSMS_APP_KEY = 'GANTI APIKEY KAMU';
+const HEROSMS_APP_URL = 'https://hero-sms.com/stubs/handler_api.php';
+
+const TOKO_HEADERS = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Tokopedia/2.368.0 (com.tokopedia.Tokopedia; build:202604172026; iOS 26.2.1) Alamofire/1.0.0',
+    'Accept': 'application/json',
+    'x-device': 'ios-2.368.0',
+    'Connection': 'keep-alive'
+};
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * BANNER TOKOPEDIA EDITION
+ */
+function displayBanner() {
+    console.clear();
+    console.log(gradient(['#42b549', '#b5f5be', '#2ecc71'])(`
+    ████████╗ ██████╗ ██╗  ██╗ ██████╗ ██████╗ ███████╗██████╗ ██╗ █████╗ 
+    ╚══██╔══╝██╔═══██╗██║ ██╔╝██╔═══██╗██╔══██╗██╔════╝██╔══██╗██║██╔══██╗
+       ██║   ██║   ██║█████╔╝ ██║   ██║██████╔╝█████╗  ██║  ██║██║███████║
+       ██║   ██║   ██║██╔═██╗ ██║   ██║██╔═══╝ ██╔══╝  ██║  ██║██║██╔══██║
+       ██║   ╚██████╔╝██║  ██╗╚██████╔╝██║     ███████╗██████╔╝██║██║  ██║
+       ╚═╝    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚═════╝ ╚═╝╚═╝  ╚═╝
+    TOKOPEDIA AUTO SYSTEM v1.1 - Ultra Precision
+    By Paizutempest x Yaelanit | Mode: Dynamic Identity
+    `));
+    console.log(chalk.green(` 📅  ${new Date().toLocaleString('id-ID')} | [ TOKOPEDIA PROJECT ]\n`));
+    console.log(chalk.gray(` ─────────────────────────────────────────────────────────`));
+}
+
+/**
+ * GENERATOR DEVICE FINGERPRINT (ANTI-DETECTION)
+ */
+function generateDynamicDevice() {
+    const idfa = uuidv4().toUpperCase();
+    const uniqueId = uuidv4().toUpperCase();
+
+
+    const appleDevices = [
+        { model: "iPhone13,4", name: "iPhone 12 Pro Max", res: "2778x1284", os: "15_5", build: "19F77" },
+        { model: "iPhone14,3", name: "iPhone 13 Pro Max", res: "2778x1284", os: "16_0", build: "20A362" },
+        { model: "iPhone15,3", name: "iPhone 14 Pro Max", res: "2796x1290", os: "16_6", build: "20G75" },
+        { model: "iPhone16,2", name: "iPhone 15 Pro Max", res: "2796x1290", os: "17_0", build: "21A326" }
+    ];
+
+
+    const selected = appleDevices[Math.floor(Math.random() * appleDevices.length)];
+    
+
+    const timezones = ["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"];
+    const selectedTz = timezones[Math.floor(Math.random() * timezones.length)];
+
+    const fpObject = {
+        "device_name": selected.name,
+        "timezone": selectedTz,
+        "is_emulator": false,
+        "versionName": "2.368.0", 
+        "unique_id": uniqueId,
+        "user_agent": `Mozilla/5.0 (iPhone; CPU iPhone OS ${selected.os} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/${selected.build}`,
+        "location_latitude": "0",
+        "device_manufacturer": "Apple",
+        "device_system": "iOS",
+        "location_longitude": "0",
+        "language": "id-ID",
+        "device_model": selected.model,
+        "is_tablet": false,
+        "current_os": "26.2.1", // Internal OS version Tokped
+        "screen_resolution": selected.res,
+        "idfa": idfa,
+        "access_type": 4,
+        "is_jailbroken_rooted": false
+    };
+
+    const fpData = Buffer.from(JSON.stringify(fpObject)).toString('base64');
+    const fpHash = crypto.createHash('md5').update(fpData).digest('hex');
+
+    return { 
+        fpData, 
+        fpHash, 
+        bdDeviceId: "763170" + Math.floor(Math.random() * 1000000000000) 
+    };
+}
+/**
+ * HELPER: GQL REQUEST SENDER
+ */
+async function sendGql(query, variables, session, device, path, stolenCookie, auth = null) {
+
+    const bodyPayload = JSON.stringify({ query, variables });
+    const STUB_FRESH = crypto.createHash('md5').update(bodyPayload).digest('hex').toUpperCase();
+
+   
+    const KHRONOS_AUTO = Math.floor(Date.now() / 1000).toString();
+    const GORGON_FRESH = '8404e0cc0000ac3dcde09c5de5766f0839c9b11865e520bf357e'; 
+  
+    const headers = {
+        'Host': 'gql.tokopedia.com',
+        'Content-Type': 'application/json; encoding=utf-8',
+        'User-Agent': 'Tokopedia/2.368.0 (com.tokopedia.Tokopedia; build:202604172026; iOS 26.2.1) Alamofire/1.0.0',
+        'Accept': 'application/json',
+        'Tkpd-SessionId': session,
+        'X-Tkpd-Path': path,
+        'Fingerprint-Data': device.fpData,
+        'Fingerprint-Hash': device.fpHash,
+        'X-Gorgon': GORGON_FRESH,  
+        'X-SS-STUB': STUB_FRESH,  
+        'Cookie': stolenCookie,    
+        'X-Tkpd-Authorization': auth || 'TKPD Tokopedia:lD2Y7LpWc1Mnxp2BERLbmV9Efc0=',
+        'Authorization': auth || 'TKPD Tokopedia:lD2Y7LpWc1Mnxp2BERLbmV9Efc0=',
+        'X-Khronos': KHRONOS_AUTO,
+        'bd-device-id': device.bdDeviceId,
+        'Connection': 'keep-alive',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'id-ID;q=1.0, en-ID;q=0.9'
+    };
+
+    // Tambahkan Accounts-Authorization jika sedang di fase Register/Profile
+    if (path.includes('register')) {
+        headers['Accounts-Authorization'] = 'dzFIWXBpZFNocmU=F82A'; 
+    }
+
+    try {
+        return await axios.post('https://gql.tokopedia.com/graphql', 
+            { query, variables }, 
+            { headers, timeout: 10000 }
+        );
+    } catch (err) {
+        return { data: { errors: [{ message: err.message }] } };
+    }
+}
+/**
+ * 📧 POLLING INBOX (SINKRON DENGAN HTML BOX TOKPED)
+ */
+async function waitEmailOtp(inboxLink) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < 180000) { 
+        try {
+            const res = await axios.get(inboxLink, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                timeout: 10000
+            });
+            const html = res.data;
+            const regexTokped = /border: 1px solid #E5E7E9;[^>]*>(\d{6})<\/div>/;
+            const match = html.match(regexTokped);
+            if (match && match[1]) {
+                console.log(chalk.green(`\n [✓] OTP DITEMUKAN: `) + chalk.white.bold(match[1]));
+                return match[1];
+            }
+            const fallback = html.match(/(\d{6})/g);
+            if (fallback && html.includes("Tokopedia")) return fallback[fallback.length - 1];
+        } catch (e) {}
+        process.stdout.write(chalk.gray(`    > Menunggu Email... ${Math.floor((180000-(Date.now()-startTime))/1000)}s \r`));
+        await delay(8000);
+    }
+    return null;
+}
+
+/**
+ * 📧 FUNGSI UPDATE EMAIL (v2.0 - Auto Domain Scraper)
+ */
+async function processUpdateEmail(accessToken, stolenCookie, session, device) {
+    console.log(chalk.magenta(`\n [i] MEMULAI PROSES UPDATE EMAIL (LIVE DOMAIN MODE)...`));
+
+
+    let attempt = 0;
+    while (true) {
+        attempt++;
+        // Rotasi domain dari list live
+        const currentDomain = `konterkulo.com`;
+        const userMail = `paizu${Math.floor(Math.random() * 999999)}`;
+        const fullEmail = `${userMail}@${currentDomain}`;
+        const inboxLink = `https://generator.email/${fullEmail}`;
+
+        console.log(chalk.blue(` [i] Percobaan #${attempt} | Target: ${chalk.white(fullEmail)}`));
+
+        try {
+            // 1. Validate
+            const valRes = await sendGql(`mutation userProfileValidate($email: String) { userProfileValidate(email: $email) { isValid message } }`, 
+                { email: fullEmail }, session, device, "/graphql/userProfileValidate", stolenCookie, `Bearer ${accessToken}`);
+
+            if (!valRes?.data?.userProfileValidate?.isValid) {
+                console.log(chalk.yellow(` [!] Domain ${currentDomain} DITOLAK Tokped. Skip...`));
+                continue; 
+            }
+
+            // 2. Request OTP
+            const otpReq = await sendGql(`query OTPRequest($otpType: String!, $mode: String, $email: String, $otpDigit: Int) { OTPRequest: OTPRequestV2(otpType: $otpType, mode: $mode, email: $email, otpDigit: $otpDigit) { success message } }`, 
+                { otpType: "141", mode: "email", email: fullEmail, otpDigit: 6 }, session, device, "/graphql/OTPRequest", stolenCookie, `Bearer ${accessToken}`);
+            
+            if (!otpReq?.data?.OTPRequest?.success) {
+                console.log(chalk.yellow(` [!] Gagal Request OTP ke ${currentDomain}. Re-rolling...`));
+                continue;
+            }
+
+            console.log(chalk.blue(` [i] OTP Terkirim! Menunggu 3 Menit di ${currentDomain}...`));
+
+            // 3. Polling OTP
+            const emailOtp = await waitEmailOtp(inboxLink);
+            if (!emailOtp) {
+                console.log(chalk.red(` [!] TIMEOUT di ${currentDomain}. Ganti domain...`));
+                continue; 
+            }
+
+            // 4. Validate OTP
+            const valOtpRes = await sendGql(`query OTPValidate($email: String, $code: String!, $otpType: String, $mode: String) { OTPValidate: OTPValidateV2(code: $code, otpType: $otpType, email: $email, mode: $mode) { validateToken } }`, 
+                { email: fullEmail, code: emailOtp, otpType: "141", mode: "email" }, session, device, "/graphql/OTPValidate", stolenCookie, `Bearer ${accessToken}`);
+            
+            const emailVToken = valOtpRes?.data?.OTPValidate?.validateToken;
+
+            // 5. Submit Update
+            const finalUpdate = await sendGql(`mutation userProfileUpdate($email: String, $currValidateToken: String) { userProfileUpdate(email: $email, currValidateToken: $currValidateToken) { isSuccess } }`, 
+                { email: fullEmail, currValidateToken: emailVToken }, session, device, "/graphql/userProfileUpdate", stolenCookie, `Bearer ${accessToken}`);
+
+            if (finalUpdate?.data?.userProfileUpdate?.isSuccess) {
+                console.log(chalk.green.bold(` [✓] EMAIL MATENG: ${fullEmail}`));
+                return fullEmail;
+            }
+        } catch (e) {
+            console.log(chalk.red(` [!] Error di #${attempt}: ${e.message}`));
+            await delay(3000);
+        }
+    }
+}
+
+/**
+ * 🔑 FUNGSI SET PASSWORD (RSA SYNC)
+ */
+async function processSetPassword(accessToken, stolenCookie, session, device, confirmedEmail) {
+    console.log(chalk.magenta(`\n [i] MEMULAI PROSES SET PASSWORD...`));
+    const passEnc = "G3miWidWAfQ/jf1P0Wjf2Prk6HMK97t3IKOk7ZJlLMeHm3PSW4yFJONOiAqww10UqF12+gOrwrGbH4l97xT3Xx8aTLmOaKCAuDooB9T6FHq/B7fp3BkKnNwwX09deBebvsa0Cgg1vbR1vdSkas2/BQ7dxM1EyK3Iw5FY7oeIku45XvLP/ed4ZaeiItzdsdQsmANw48A5IoFN/acGZgGen25zlfhqWs0abKd7r7Jt8ykvd8tZSCNmDJaLJ0aQwSL5mzLmX7kmN4VLQBkF9ZEv4m0A3G7wdDKe3ivtI+KNbo4ofaaM0v+IUh79Ms0fVe5+By6RPKeo9XfMaQm90xkUaA==";
+
+
+    try {
+        await sendGql(`mutation resetPassword($input: ResetPasswordRequest!) { resetPassword(input: $input) { is_success } }`, 
+            { input: { emailphone: confirmedEmail } }, session, device, "/graphql/resetPassword", stolenCookie, `Bearer ${accessToken}`);
+        
+        const otp = await waitEmailOtp(`https://generator.email/${confirmedEmail}`);
+        if (!otp) return false;
+
+        const valOtpRes = await sendGql(`query OTPValidate($email: String, $code: String!, $otpType: String, $mode: String) { OTPValidate: OTPValidateV2(code: $code, otpType: $otpType, email: $email, mode: $mode) { validateToken } }`, 
+            { email: confirmedEmail, code: otp, otpType: "132", mode: "email" }, session, device, "/graphql/OTPValidate", stolenCookie, `Bearer ${accessToken}`);
+        
+        const vToken = valOtpRes.data?.OTPValidate?.validateToken;
+
+        const final = await sendGql(`mutation submitResetPasswordV2($input: SubmitResetPasswordV2Request!) { submitResetPasswordV2(input: $input) { updated } }`, {
+            input: { encode: Buffer.from(confirmedEmail).toString('base64'), new_password: passEnc, repeat_password: passEnc, validatetoken: vToken, h: "3fec" }
+        }, session, device, "/graphql/submitResetPasswordV2", stolenCookie, `Bearer ${accessToken}`);
+
+        return final.data?.submitResetPasswordV2?.updated || false;
+    } catch (e) { return false; }
+}
+/**
+ * CORE LOGIC: REGISTER (PURE ASYNC)
+ */
+/**
+ * 📞 SMS HANDLERS
+ */
+async function getSmsNumber() {
+    try {
+        const res = await axios.get(`${HEROSMS_APP_URL}?api_key=${HEROSMS_APP_KEY}&action=getNumberV2&service=xd&country=6&maxPrice=0.008`);
+        return (res.data && res.data.activationId) ? { id: res.data.activationId, number: `+${res.data.phoneNumber}` } : null;
+    } catch (e) { return null; }
+}
+async function startAutoRegister(index) {
+    const device = generateDynamicDevice();
+    const sessionId = uuidv4().replace(/-/g, '');
+    
+    console.log(chalk.yellow(`\n [ AKUN #${index} ] IDENTITAS BARU DIAKTIFKAN...`));
+
+    // --- 🚨 STEP 1: PILIH SUMBER NOMOR ---
+    console.log(chalk.white(`\n Pilih Sumber Nomor:`));
+    console.log(chalk.cyan(` 1. Get Number Auto`));
+    console.log(chalk.cyan(` 2. Manual Input Number & OTP`));
+    const sourceChoice = readline.question(chalk.yellow(' > Pilih (1/2): '));
+
+    let phone, orderId = null;
+
+    if (sourceChoice === '1') {
+        // --- JIKA PILIH 1: AMBIL DARI API ---
+        const sms = await getSmsNumber();
+        if (!sms) {
+            console.log(chalk.red(` [!] No Numbers. Re-rolling...`));
+            return await startAutoRegister(index);
+        }
+        phone = sms.number;
+        orderId = sms.id;
+        console.log(chalk.green(` [✓] Secured Auto: ${phone}`));
+    } else {
+        // --- JIKA PILIH 2: INPUT KEYBOARD ---
+        phone = readline.question(chalk.white(' > Masukkan No HP (Contoh: 6285xxx): '));
+        console.log(chalk.green(` [✓] Secured Manual: ${phone}`));
+    }
+
+    try {
+        // --- STEP 2: ADD TOKEN (GQL) ---
+        await sendGql(`mutation cmAddTokenV2($input: Token_stV2!) { cmAddTokenV2(input: $input) { UserId Error } }`, {
+            input: {
+                bytedanceDeviceID: device.bdDeviceId, deviceOS: "ios", appVersion: "2.368.0",
+                appName: "Tokopedia", userId: "0", appId: "com.tokopedia.Tokopedia",
+                loggedStatus: "LOGGED_OUT", requestTimestamp: Math.floor(Date.now() / 1000).toString(),
+                deviceModel: "iOS", notificationToken: sessionId
+            }
+        }, sessionId, device, "/graphql/AppDelegates/cmAddTokenV2");
+
+        // --- STEP 3: REGISTER CHECK ---
+        const checkRes = await sendGql(`mutation User_registerCheck($emailOrPhoneNumber: String!){ registerCheck(id: $emailOrPhoneNumber) { isExist status } }`, 
+            { emailOrPhoneNumber: phone }, sessionId, device, "/graphql/Authentication/mutation User_registerCheck");
+        
+        if (checkRes.data.data.registerCheck.isExist) {
+            console.log(chalk.red(` [!] Nomor +${phone} sudah terdaftar!`));
+            // Jika auto, kembalikan saldo
+            if (orderId) await axios.get(`${HEROSMS_APP_URL}?action=setStatus&api_key=${HEROSMS_APP_KEY}&id=${orderId}&status=8`);
+            return await startAutoRegister(index);
+        }
+
+        // --- STEP 4: REQUEST OTP ---
+        await sendGql(`query User_OTPRequestV2($otpType: String!, $mode: String, $msisdn: String, $otpDigit: Int) { OTPRequestV2(otpType: $otpType, mode: $mode, msisdn: $msisdn, otpDigit: $otpDigit) { success message } }`, 
+            { otpType: "116", otpDigit: 6, mode: "sms", msisdn: phone }, sessionId, device, "/graphql/UserAccount/requestCentralizedOtpGql");
+        console.log(chalk.blue(` [i] OTP SMS Terkirim ke ${phone}`));
+
+        // --- 🚨 STEP 5: AMBIL OTP (FIXED LOGIC) ---
+        let otpCode = null;
+
+        if (sourceChoice === '1') {
+            console.log(chalk.blue(` [i] Menunggu OTP...`));
+            const startTime = Date.now();
+            while (Date.now() - startTime < 120000) {
+                const res = await axios.get(`${HEROSMS_APP_URL}?action=getStatus&api_key=${HEROSMS_APP_KEY}&id=${orderId}`);
+                
+                if (res.data.includes('STATUS_OK')) {
+                    otpCode = res.data.split(':')[1];
+                    console.log(chalk.green(`\n [✓] OTP RECEIVED: `) + chalk.green.bold(otpCode)); // Print di sini pas dapet
+                    break;
+                } else {
+                    // Update status di baris yang sama biar estetik
+                    const remaining = Math.floor((120000 - (Date.now() - startTime)) / 1000);
+                    process.stdout.write(chalk.gray(`    > Menunggu SMS... ${remaining}s  \r`));
+                }
+                await delay(5000);
+            }
+        } else {
+            otpCode = readline.question(chalk.yellow(' > Masukkan Kode OTP yang masuk di HP: '));
+        }
+
+        if (!otpCode) {
+            if (orderId) await axios.get(`${HEROSMS_APP_URL}?action=setStatus&api_key=${HEROSMS_APP_KEY}&id=${orderId}&status=8`);
+            throw new Error("OTP Gagal Didapatkan");
+            return await startAutoRegister(index);
+        }
+
+        // Step 6: Validate OTP
+        const valOtpQuery = `query User_OTPValidateV2($msisdn: String, $code: String!, $otpType: String, $mode: String) { OTPValidateV2(code: $code, otpType: $otpType, msisdn: $msisdn, mode: $mode) { success validateToken } }`;
+        const valRes = await sendGql(valOtpQuery, { code: otpCode, msisdn: phone, otpType: "116", mode: "sms" }, sessionId, device, "/graphql/UserAccount/validateCentralizedOtpGql");
+        const vToken = valRes.data.data.OTPValidateV2.validateToken;
+        console.log(chalk.green(` [✓] OTP Valid! Token: ${vToken.substring(0, 8)}...`));
+
+        // Step 7: Final Register
+        console.log(chalk.magenta(` [i] Finalizing Registration...`));
+        
+        const listNama = ["Dani Setiawan", "Rian Hidayat", "Budi Santoso", "Eko Prasetyo", "Nico Wijaya", "Aji Permana", "Dedi Kurniawan"];
+        const namaRandom = listNama[Math.floor(Math.random() * listNama.length)];
+        
+        const regQuery = `mutation User_register($input: RegisterRequest!) { 
+            register(input: $input) { 
+                user_id_str sid access_token refresh_token 
+                errors { name message } 
+            } 
+        }`;
+
+        const regRes = await sendGql(regQuery, {
+            input: { 
+                phone: phone, 
+                fullname: namaRandom, 
+                reg_type: "phone", 
+                os_type: "2", 
+                validate_token: vToken 
+            }
+        }, sessionId, device, "/graphql/UserAccountSharedComponents/register", "");
+        // DEFINISIKAN HASIL & DARAH
+        const finalResult = regRes.data?.data?.register;
+        const rawSetCookie = regRes.headers['set-cookie'];
+        let stolenCookie = rawSetCookie ? rawSetCookie.map(c => c.split(';')[0]).join('; ') : "";
+        if (finalResult && finalResult.access_token) {
+    const token = finalResult.access_token;
+    console.log(chalk.green.bold(` [✓] REGISTER SUCCESS! UID: ${finalResult.user_id_str}`));
+    
+
+    console.log(chalk.cyan(` [✓] Cookie Status: `) + chalk.green(`INJECTED`));
+    console.log(chalk.green(` [✓] New Login Cookie: `) + chalk.white(stolenCookie.substring(0, 20) + "..."));
+    await delay(2000);
+
+    // --- 📧 FASE PENYEMPURNAAN EMAIL (Wajib Pake stolenCookie) ---
+    const finalEmail = await processUpdateEmail(token, stolenCookie, sessionId, device);
+
+    let statusPass = "FAILED";
+            if (finalEmail) {
+                // --- 🔑 FASE 2: SET PASSWORD ---
+                
+                const isPassOk = await processSetPassword(token, stolenCookie, sessionId, device, finalEmail);
+                statusPass = isPassOk ? "SUCCESS" : "FAILED";
+            }
+
+            // --- 💾 FINAL SAVE ---
+            const passWeb = "Paizuu12345!!!"; 
+            const dataMateng = `UID: ${finalResult.user_id_str} | Phone: ${phone} | Email: ${finalEmail || "FAILED"} | Pass: ${passWeb} | StatusPass: ${statusPass} | Cookie: ${stolenCookie}\n`;
+            
+            fs.appendFileSync('akuntokped.txt', dataMateng);
+            console.log(chalk.gray(` [i] Data Mateng Saved to akuntokped.txt`));
+
+        } else {
+            // CEK ERROR DARI TOKOPEDIA
+            const gqlErrors = regRes.data?.errors || [];
+            const regErrors = finalResult?.errors || [];
+            
+            console.log(chalk.red(` [!] Register Failed.`));
+            
+            if (gqlErrors.length > 0) console.log(chalk.red(`     GQL Error: ${gqlErrors[0].message}`));
+            if (regErrors.length > 0) console.log(chalk.red(`     Reg Error: ${regErrors[0].message}`));
+            
+            if (!finalResult) {
+                console.log(chalk.yellow(` [!] Raw Response for Sniffing Reference:`));
+                console.dir(regRes.data, { depth: null });
+            }
+        }
+
+    } catch (e) {
+        console.log(chalk.red(` [!] FAILED REGISTER #${index}: ${e.message}`));
+        return await startAutoRegister(index);
+    }
+}
+
+/**
+ * MAIN CONTROLLER
+ */
+async function main() {
+    displayBanner();
+    console.log(chalk.white(` Pilih Mode:`));
+    console.log(chalk.green(` 1. AUTO REGIST TOKOPEDIA (GQL MODE)`));
+    console.log(chalk.green(` 2. LOGIN & CEK VOUCHER (COMING SOON)`));
+    
+    const choice = readline.question(chalk.yellow('\n > Pilih (1/2): '));
+
+    if (choice === '1') {
+        const total = parseInt(readline.question(chalk.white(' > Mau buat berapa akun? : ')));
+        for (let i = 1; i <= total; i++) {
+            await startAutoRegister(i);
+            await delay(3000);
+        }
+    } else {
+        console.log(chalk.red(' [!] Mode belum tersedia. Pakai nomor 1 dulu.'));
+    }
+    console.log(chalk.green('\n [✓] SEMUA PROSES SELESAI.'));
+}
+
+main();
